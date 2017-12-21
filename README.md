@@ -41,3 +41,9 @@ See the Wiki for more instructions. https://github.com/uzh-rpg/rpg_svo/wiki
 
 You are very welcome to contribute to SVO by opening a pull request via Github.
 I try to follow the ROS C++ style guide http://wiki.ros.org/CppStyleGuide
+
+#### Updates
+This manual can be helpful to make the VO bunch alive http://www.pixhawk.com/dev/ros/visual_estimation?rev=1422953247
+
+FAST lib after compiling and making .so file needs to be replaced with another libfast.so taken from SVO2.0(there is ARM optimisation for FAST detector)
+
