@@ -1,16 +1,39 @@
 <launch>
   
+    <!--<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+        <param name="video_device" value="/dev/video0" />
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="camera_frame_id" value="usb_cam" />
+        <param name="io_method" value="mmap"/>
+        <param name="framerate" value="30" />
+    </node>-->
+      <node name="cv_camera" pkg="cv_camera" type="cv_camera_node" output="screen" >
+    <param name="device_id" value="0" />
+    <param name="image_width" value="320" />
+    <param name="image_height" value="240" />
+    <param name="rate" value="60" />
+    <param name="frame_id" value="cv_cam" />
+  </node>
+
+
     <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
     
         <!-- Camera topic to subscribe to -->
-        <param name="cam_topic" value="/camera/image_raw" type="str" />
+        <param name="cam_topic" value="/cv_camera/image_raw" type="str" />
         
         <!-- Camera calibration file -->
-        <rosparam file="$(find svo_ros)/param/camera_atan.yaml" />
+        <rosparam file="$(find svo_ros)/param/ps3_atan_320.yaml" />
         
         <!-- Default parameter settings: choose between vo_fast and vo_accurate -->
-        <rosparam file="$(find svo_ros)/param/vo_fast.yaml" />
-
+        <rosparam file="$(find svo_ros)/param/vo_px4.yaml" />
+	<!--<param name="init_rx" value="3.14" />
+        <param name="init_ry" value="0.00" />
+        <param name="init_rz" value="0.00" />-->
+        <!--<param name="max_fps" value="30" />
+        <param name="quality_min_fts" value="10" />-->
+	<param name="accept_console_user_input" value="false" />
     </node>
         
 </launch>

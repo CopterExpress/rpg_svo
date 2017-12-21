@@ -33,6 +33,8 @@
 #include <vikit/abstract_camera.h>
 #include <vikit/camera_loader.h>
 #include <vikit/user_input_thread.h>
+#include <sensor_fusion_comm/InitScale.h>
+#include <geometry_msgs/PoseStamped.h>
 
 namespace svo {
 
@@ -46,6 +48,7 @@ public:
   bool publish_dense_input_;
   boost::shared_ptr<vk::UserInputThread> user_input_thread_;
   ros::Subscriber sub_remote_key_;
+  ros::Subscriber sub_svo_reset;
   std::string remote_input_;
   vk::AbstractCamera* cam_;
   bool quit_;
@@ -54,6 +57,9 @@ public:
   void imgCb(const sensor_msgs::ImageConstPtr& msg);
   void processUserActions();
   void remoteKeyCb(const std_msgs::StringConstPtr& key_input);
+  void resetCallback(const geometry_msgs::PoseStampedConstPtr &msg);
+  ros::ServiceClient msf_init;
+  sensor_fusion_comm::InitScale srv;
 };
 
 VoNode::VoNode() :
@@ -72,18 +78,20 @@ VoNode::VoNode() :
   if(!vk::camera_loader::loadFromRosNs("svo", cam_))
     throw std::runtime_error("Camera model not correctly specified.");
 
-  // Get initial position and orientation
+  visualizer_.camera_facing_ = vk::rpy2dcm(Vector3d(vk::getParam<double>("svo/init_rx", 0.0),
+                                                      vk::getParam<double>("svo/init_ry", 0.0),
+                                                      vk::getParam<double>("svo/init_rz", 0.0)));
+
+  //Get init pos & orient
   visualizer_.T_world_from_vision_ = Sophus::SE3(
-      vk::rpy2dcm(Vector3d(vk::getParam<double>("svo/init_rx", 0.0),
-                           vk::getParam<double>("svo/init_ry", 0.0),
-                           vk::getParam<double>("svo/init_rz", 0.0))),
+      visualizer_.camera_facing_,
       Eigen::Vector3d(vk::getParam<double>("svo/init_tx", 0.0),
                       vk::getParam<double>("svo/init_ty", 0.0),
                       vk::getParam<double>("svo/init_tz", 0.0)));
 
   // Init VO and start
   vo_ = new svo::FrameHandlerMono(cam_);
-  vo_->start();
+  srv.request.scale = 1;
 }
 
 VoNode::~VoNode()
@@ -139,6 +147,10 @@ void VoNode::processUserActions()
       printf("SVO user input: RESET\n");
       break;
     case 's':
+      if(msf_init.call(srv))
+      {
+         ROS_INFO("Msf was called");
+      }
       vo_->start();
       printf("SVO user input: START\n");
       break;
@@ -151,7 +163,23 @@ void VoNode::remoteKeyCb(const std_msgs::StringConstPtr& key_input)
   remote_input_ = key_input->data;
 }
 
-} // namespace svo
+void VoNode::resetCallback(const geometry_msgs::PoseStampedConstPtr &msg)
+{
+    visualizer_.T_world_from_vision_ = Sophus::SE3(
+            vk::quat2dcm(Vector4d(msg->pose.orientation.w,
+                                  msg->pose.orientation.x,
+                                  msg->pose.orientation.y,
+                                  msg->pose.orientation.z)) * visualizer_.camera_facing_,
+            Eigen::Vector3d(msg->pose.position.x,
+                            msg->pose.position.y,
+                            msg->pose.position.z));
+      vo_->start();
+      printf("SVO user input: RESTART\n");
+}
+
+ // namespace svo
+
+}
 
 int main(int argc, char **argv)
 {
@@ -159,7 +187,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   std::cout << "create vo_node" << std::endl;
   svo::VoNode vo_node;
-
+  vo_node.msf_init = nh.serviceClient<sensor_fusion_comm::InitScale>("/msf_pose_sensor/pose_sensor/initialize_msf_scale");
   // subscribe to cam msgs
   std::string cam_topic(vk::getParam<std::string>("svo/cam_topic", "camera/image_raw"));
   image_transport::ImageTransport it(nh);
@@ -167,7 +195,7 @@ int main(int argc, char **argv)
 
   // subscribe to remote input
   vo_node.sub_remote_key_ = nh.subscribe("svo/remote_key", 5, &svo::VoNode::remoteKeyCb, &vo_node);
-
+  vo_node.sub_svo_reset = nh.subscribe("/svo/autoreset", 5, &svo::VoNode::resetCallback, &vo_node);
   // start processing callbacks
   while(ros::ok() && !vo_node.quit_)
   {

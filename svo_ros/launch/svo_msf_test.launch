@@ -1,0 +1,16 @@
+<launch>
+   <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
+        <param name="cam_topic" value="/usb_cam/image_raw" type="str" />
+        <rosparam file="$(find svo_ros)/param/ps3_fisheye_atan.yaml" />
+        <rosparam file="$(find svo_ros)/param/vo_px4.yaml" />
+    <param name="accept_console_user_input" value="false" />
+    <param name="publish_world_in_cam_frame" value="false" />
+    <!--<param name="init_rx" value="3.1415289878" /><->-->
+    </node>
+    <node name="msf_pose_sensor" pkg="msf_updates" type="pose_sensor" clear_params="true" output="screen">
+        <remap from="msf_core/imu_state_input" to="/mavros/imu/data" />
+        <remap from="msf_updates/pose_with_covariance_input" to="/svo/pose" />
+    <rosparam file="$(find msf_updates)/px4_svo_sensor_fix.yaml"/>
+   </node>
+    <node pkg="rosservice" type="rosservice" name="initialize" args="call --wait /msf_pose_sensor/pose_sensor/initialize_msf_scale 1"/>
+</launch>

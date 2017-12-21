@@ -34,6 +34,8 @@ FIND_PACKAGE(catkin REQUIRED COMPONENTS
   svo_msgs
   vikit_common
   vikit_ros
+  roslint
+  nodelet
 )
 
 # Add plain cmake packages 
@@ -42,10 +44,12 @@ FIND_PACKAGE(Eigen REQUIRED)
 FIND_PACKAGE(Sophus REQUIRED)
 FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
 
+roslint_cpp()
+
 # Describe catkin Project
 catkin_package(
   DEPENDS Eigen OpenCV Sophus Boost
-  CATKIN_DEPENDS roscpp nav_msgs std_msgs visualization_msgs sensor_msgs image_transport cv_bridge tf svo svo_msgs vikit_common vikit_ros
+  CATKIN_DEPENDS roscpp nav_msgs std_msgs visualization_msgs sensor_msgs image_transport cv_bridge tf svo svo_msgs vikit_common vikit_ros nodelet
   INCLUDE_DIRS include
   LIBRARIES svo_visualizer
 )
@@ -71,7 +75,16 @@ LIST(APPEND LINK_LIBS
 # Create visualizer library
 ADD_LIBRARY(svo_visualizer src/visualizer.cpp)
 TARGET_LINK_LIBRARIES(svo_visualizer ${LINK_LIBS})
-                                 
+
+#Create nodelet library
+ADD_LIBRARY(svo_interface src/svo_interface.cpp)
+TARGET_LINK_LIBRARIES(svo_interface svo_visualizer)
+
+#Create nodelet library
+ADD_LIBRARY(svo_nodelet src/svo_nodelet.cpp)
+add_dependencies(svo_nodelet svo_interface)
+TARGET_LINK_LIBRARIES(svo_nodelet svo_interface)
+
 # Create Executables                      
 ADD_EXECUTABLE(vo src/vo_node.cpp)
 TARGET_LINK_LIBRARIES(vo svo_visualizer)

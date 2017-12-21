@@ -1,0 +1,28 @@
+<launch>
+<node pkg="nodelet" type="nodelet" name="vo_nodelet_manager"  args="manager" output="screen"/>
+  <!-- Camera driver -->
+ <node pkg="nodelet" type="nodelet" name="cv_camera" args="load cv_camera/CvCameraNodelet vo_nodelet_manager" output="screen">
+    <param name="device_id" value="0" />
+    <param name="image_width" value="320" />
+    <param name="image_height" value="240" />
+    <param name="rate" value="50" />
+    <param name="frame_id" value="cv_cam" />
+  </node>
+<node pkg="nodelet" type="nodelet" name="svo" args="load svo_ros/SvoNodelet vo_nodelet_manager" output="screen">....
+        <!-- Camera topic to subscribe to -->
+         <param name="cam_topic" value="/cv_camera/image_raw" type="str" />
+
+        <!-- Camera calibration file -->
+        <rosparam file="$(find svo_ros)/param/ps3_atan_320.yaml" />
+
+        <!-- Default parameter settings: choose between vo_fast and vo_accurate -->
+        <rosparam file="$(find svo_ros)/param/vo_px4.yaml" />
+	<param name="publish_world_in_cam_frame" value="false" />
+    <!--<remap from="/vo_nodelet_manager/pose" to="/svo/pose" />
+    <remap from="/vo_nodelet_manager/image" to="/svo/image" />-->
+    </node>
+
+
+<!--    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find svo_ros)/rviz_config.rviz" output="log"/>-->
+        
+</launch>

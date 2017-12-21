@@ -1,0 +1,31 @@
+<launch>
+<node pkg="nodelet" type="nodelet" name="vo_nodelet_manager"  args="manager" output="screen" launch-prefix="taskset -c 0"/>
+
+  <!-- Camera driver -->
+ <node pkg="nodelet" type="nodelet" name="usb_cam" args="load usb_cam/UsbCamNodelet vo_nodelet_manager" output="screen" launch-prefix="taskset -c 0" >
+    <param name="video_device" value="/dev/video0" />
+    <param name="image_width" value="320" />
+    <param name="image_height" value="240" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="framerate" value="40" />
+    <param name="camera_frame_id" value="usb_cam" />
+    <param name="autoexposure" value="true" />
+    <param name="io_method" value="mmap"/>
+  </node>
+
+<node pkg="nodelet" type="nodelet" name="svo" args="load svo_ros/SvoNodelet vo_nodelet_manager" output="screen" launch-prefix="taskset -c 0">    
+        <!-- Camera topic to subscribe to -->
+         <param name="cam_topic" value="/usb_cam/image_raw" type="str" />
+        
+        <!-- Camera calibration file -->
+        <rosparam file="$(find svo_ros)/param/ps3_atan_320.yaml" />
+        
+        <!-- Default parameter settings: choose between vo_fast and vo_accurate -->
+        <rosparam file="$(find svo_ros)/param/vo_px4.yaml" />
+	<param name="publish_world_in_cam_frame" value="false" />
+	<!--<remap from="/vo_nodelet_manager/pose" to="/svo/pose" />
+	<remap from="/vo_nodelet_manager/image" to="/svo/image" />-->
+    </node>
+<!--    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find svo_ros)/rviz_config.rviz" output="log"/>-->
+        
+</launch>

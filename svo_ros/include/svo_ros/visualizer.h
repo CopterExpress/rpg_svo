@@ -28,6 +28,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <boost/lexical_cast.hpp>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <image_transport/image_transport.h>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
@@ -62,6 +63,9 @@ public:
   bool publish_map_every_frame_;
   ros::Duration publish_points_display_time_;
   SE3 T_world_from_vision_;
+  Matrix3d camera_facing_;
+
+  tf::TransformListener tl;
 
   Visualizer();
 

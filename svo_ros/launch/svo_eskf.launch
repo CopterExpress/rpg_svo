@@ -1,0 +1,28 @@
+<launch>
+  <!-- Name of the node -->
+  <arg name="eskf_node" default="eskf_pos"/>
+
+  <!-- ODOM topic to use -->
+  <arg name="odom_topic" default="/mavros/local_position/odom"/>
+
+  <!-- SVO topic to use -->
+  <arg name="svo_topic" default="/svo/pose"/>
+
+  <!-- VISION topic to use -->
+  <arg name="vis_topic" default="/mavros/vision_pose/pose"/>
+
+  <node pkg="eskf_pos" name="$(arg eskf_node)" type="eskf_pos" output="screen">
+    <remap from="~odom" to="$(arg odom_topic)"/>
+    <remap from="~svo" to="$(arg svo_topic)"/>
+    <remap from="~xyz" to="$(arg vis_topic)"/>
+  </node>
+
+  <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
+    <param name="cam_topic" value="/usb_cam/image_raw" type="str" />
+    <rosparam file="$(find svo_ros)/param/ps3_fisheye_atan.yaml" />
+    <rosparam file="$(find svo_ros)/param/vo_px4.yaml" />
+    <param name="accept_console_user_input" value="false" />
+    <param name="publish_world_in_cam_frame" value="false" />
+  </node>
+
+</launch>

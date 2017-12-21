@@ -52,7 +52,7 @@ Visualizer() :
   // Init ROS Marker Publishers
   pub_frames_ = pnh_.advertise<visualization_msgs::Marker>("keyframes", 10);
   pub_points_ = pnh_.advertise<visualization_msgs::Marker>("points", 1000);
-  pub_pose_ = pnh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose",10);
+  pub_pose_ = pnh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose",1);
   pub_info_ = pnh_.advertise<svo_msgs::Info>("info", 10);
   pub_dense_ = pnh_.advertise<svo_msgs::DenseInput>("dense_input",10);
 
@@ -177,22 +177,54 @@ void Visualizer::publishMinimal(
     {
       // publish cam in world frame
       SE3 T_world_from_cam(T_world_from_vision_*frame->T_f_w_.inverse());
-      q = Quaterniond(T_world_from_cam.rotation_matrix()*T_world_from_vision_.rotation_matrix().transpose());
+      q = Quaterniond(T_world_from_cam.rotation_matrix() * camera_facing_.transpose());
       p = T_world_from_cam.translation();
       Cov = T_world_from_cam.Adj()*frame->Cov_*T_world_from_cam.inverse().Adj();
     }
+
+    Quaterniond cam2imuQ(0, -1, 1, 0);
+    cam2imuQ.normalize();
+
+    Quaterniond camPoseQuat = cam2imuQ.conjugate() * q * cam2imuQ;
+    camPoseQuat.normalize();
+
     geometry_msgs::PoseWithCovarianceStampedPtr msg_pose(new geometry_msgs::PoseWithCovarianceStamped);
     msg_pose->header = header_msg;
-    msg_pose->pose.pose.position.x = p[0];
-    msg_pose->pose.pose.position.y = p[1];
-    msg_pose->pose.pose.position.z = p[2];
-    msg_pose->pose.pose.orientation.x = q.x();
-    msg_pose->pose.pose.orientation.y = q.y();
-    msg_pose->pose.pose.orientation.z = q.z();
-    msg_pose->pose.pose.orientation.w = q.w();
+    msg_pose->pose.pose.position.x = -p[1];
+    msg_pose->pose.pose.position.y = -p[0];
+    msg_pose->pose.pose.position.z = -p[2];
+
+    msg_pose->pose.pose.orientation.x = camPoseQuat.x();
+    msg_pose->pose.pose.orientation.y = camPoseQuat.y();
+    msg_pose->pose.pose.orientation.z = camPoseQuat.z();
+    msg_pose->pose.pose.orientation.w = camPoseQuat.w();
     for(size_t i=0; i<36; ++i)
       msg_pose->pose.covariance[i] = Cov(i%6, i/6);
     pub_pose_.publish(msg_pose);
+
+
+    tf::Transform transform;
+    transform.setOrigin(tf::Vector3(-p[1], -p[0], -p[2]));
+    transform.setRotation(tf::Quaternion(camPoseQuat.x(), camPoseQuat.y(), camPoseQuat.z(), camPoseQuat.w()));
+    br_.sendTransform(tf::StampedTransform(transform , ros::Time::now(), "world", "cam"));
+
+
+//    geometry_msgs::PoseWithCovarianceStampedPtr msg_pose(new geometry_msgs::PoseWithCovarianceStamped);
+//    msg_pose->header = header_msg;
+//    msg_pose->pose.pose.position.x = p[0];
+//    msg_pose->pose.pose.position.y = p[1];
+//    msg_pose->pose.pose.position.z = p[2];
+//    msg_pose->pose.pose.orientation.x = q.x();
+//    msg_pose->pose.pose.orientation.y = q.y();
+//    msg_pose->pose.pose.orientation.z = q.z();
+//    msg_pose->pose.pose.orientation.w = q.w();
+//    for(size_t i=0; i<36; ++i)
+//      msg_pose->pose.covariance[i] = Cov(i%6, i/6);
+//    pub_pose_.publish(msg_pose);
+//    tf::Transform transform;
+//    transform.setOrigin(tf::Vector3(p[0], p[1], p[2]));
+//    transform.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
+//    br_.sendTransform(tf::StampedTransform(transform , ros::Time::now(), "world", "cam"));
   }
 }
 
@@ -204,9 +236,9 @@ void Visualizer::visualizeMarkers(
   if(frame == NULL)
     return;
 
-  vk::output_helper::publishTfTransform(
-      frame->T_f_w_*T_world_from_vision_.inverse(),
-      ros::Time(frame->timestamp_), "cam_pos", "world", br_);
+//  vk::output_helper::publishTfTransform(
+//      frame->T_f_w_*T_world_from_vision_.inverse(),
+//      ros::Time(frame->timestamp_), "cam_pos", "world", br_);
 
   if(pub_frames_.getNumSubscribers() > 0 || pub_points_.getNumSubscribers() > 0)
   {

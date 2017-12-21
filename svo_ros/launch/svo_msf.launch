@@ -1,0 +1,49 @@
+<launch>
+    <arg name="vo_guard" default="false"/>
+    <arg name="fcu_url" default="serial:///dev/ttyAMA0:921600" />
+    <arg name="gcs_url" default="udp://@192.168.11.17" />
+    <arg name="tgt_system" default="1" />
+    <arg name="tgt_component" default="50" />
+    
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node">
+        <param name="video_device" value="/dev/video0" />
+        <param name="image_width" value="320" />
+        <param name="image_height" value="240" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="framerate" value="40" />
+        <param name="camera_frame_id" value="webcam" />
+    </node>
+
+    <node name="mavros" pkg="mavros" type="mavros_node" output="screen">
+	<remap from="mavros/vision_pose/pose_cov" to="/msf_core/pose" />
+	<rosparam command="load" file="$(find mavros)/launch/px4_config.yaml" />
+	<param name="fcu_url" value="$(arg fcu_url)" />
+	<param name="gcs_url" value="$(arg gcs_url)" />
+	<param name="target_system_id" value="$(arg tgt_system)" />
+	<param name="target_component_id" value="$(arg tgt_component)" />
+ 
+	<rosparam command="load" file="$(find mavros)/launch/px4_blacklist.yaml" />
+ 
+	<!-- enable heartbeat send and reduce timeout -->
+	<param name="conn_heartbeat" value="5.0" />
+	<param name="conn_timeout" value="10.0" />
+	<param name="startup_px4_usb_quirk" value="true" />
+
+   <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
+        <param name="cam_topic" value="/usb_cam/image_raw" type="str" />
+        <rosparam file="$(find svo_ros)/param/ps3_fisheye_atan.yaml" />
+        <rosparam file="$(find svo_ros)/param/vo_px4.yaml" />
+    <param name="accept_console_user_input" value="true" />
+    <param name="publish_world_in_cam_frame" value="false" />
+    </node>
+ 
+    <node name="msf_pose_sensor" pkg="msf_updates" type="pose_sensor" clear_params="true" output="screen">
+        <remap from="msf_core/imu_state_input" to="/mavros/imu/data" />
+        <remap from="msf_updates/pose_with_covariance_input" to="/svo/pose" />
+    <rosparam file="$(find msf_updates)/px4_svo_sensor_fix.yaml"/>
+   </node>
+    <include file="$(find vo_guard)/launch/vo_guard.launch" if="$(arg vo_guard)"/>
+
+<!--    <node pkg="rosservice" type="rosservice" name="initialize" args="call -wait /msf_pose_sensor/pose_sensor/initialize_msf_scale 1"/>-->
+<!--    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find svo_ros)/rviz_config.rviz" output="log"/> -->
+</launch>

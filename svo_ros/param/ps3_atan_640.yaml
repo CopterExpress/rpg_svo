@@ -1,0 +1,10 @@
+cam_model: ATAN
+cam_width: 640
+cam_height: 480
+cam_fx: 0.805286
+cam_fy: 1.07308
+cam_cx: 0.453211
+cam_cy: 0.475503
+cam_d0: 0.36499
+
+rms: 0.26
