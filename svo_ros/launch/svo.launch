@@ -1,0 +1,13 @@
+<launch>
+      
+   <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
+    <param name="cam_topic" value="/camera/image_raw" type="str" />
+    <rosparam file="$(find svo_ros)/param/camera_atan.yaml" />
+    <rosparam file="$(find svo_ros)/param/vo_fast.yaml" />
+    <param name="accept_console_user_input" value="false" />
+    <param name="publish_world_in_cam_frame" value="false" />
+    <param name="accept_console_user_input" value="true" />
+    <remap from="/svo/pose" to="/mavros/vision_pose/pose_cov" />
+   </node>
+   
+</launch>
