@@ -181,15 +181,23 @@ void Visualizer::publishMinimal(
       p = T_world_from_cam.translation();
       Cov = T_world_from_cam.Adj()*frame->Cov_*T_world_from_cam.inverse().Adj();
     }
+    
+    Quaterniond cam2imuQ(0, -1, 1, 0);
+    cam2imuQ.normalize();
+
+    Quaterniond camPoseQuat = cam2imuQ.conjugate() * q * cam2imuQ;
+    camPoseQuat.normalize();
+    
     geometry_msgs::PoseWithCovarianceStampedPtr msg_pose(new geometry_msgs::PoseWithCovarianceStamped);
     msg_pose->header = header_msg;
-    msg_pose->pose.pose.position.x = p[0];
-    msg_pose->pose.pose.position.y = p[1];
-    msg_pose->pose.pose.position.z = p[2];
-    msg_pose->pose.pose.orientation.x = q.x();
-    msg_pose->pose.pose.orientation.y = q.y();
-    msg_pose->pose.pose.orientation.z = q.z();
-    msg_pose->pose.pose.orientation.w = q.w();
+    msg_pose->pose.pose.position.x = -p[1];
+    msg_pose->pose.pose.position.y = -p[0];
+    msg_pose->pose.pose.position.z = -p[2];
+
+    msg_pose->pose.pose.orientation.x = camPoseQuat.x();
+    msg_pose->pose.pose.orientation.y = camPoseQuat.y();
+    msg_pose->pose.pose.orientation.z = camPoseQuat.z();
+    msg_pose->pose.pose.orientation.w = camPoseQuat.w();
     for(size_t i=0; i<36; ++i)
       msg_pose->pose.covariance[i] = Cov(i%6, i/6);
     pub_pose_.publish(msg_pose);
