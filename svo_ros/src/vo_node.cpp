@@ -83,7 +83,7 @@ VoNode::VoNode() :
 
   // Init VO and start
   vo_ = new svo::FrameHandlerMono(cam_);
-  vo_->start();
+  //vo_->start();
 }
 
 VoNode::~VoNode()
@@ -159,7 +159,6 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   std::cout << "create vo_node" << std::endl;
   svo::VoNode vo_node;
-
   // subscribe to cam msgs
   std::string cam_topic(vk::getParam<std::string>("svo/cam_topic", "camera/image_raw"));
   image_transport::ImageTransport it(nh);
