@@ -33,7 +33,6 @@
 #include <vikit/abstract_camera.h>
 #include <vikit/camera_loader.h>
 #include <vikit/user_input_thread.h>
-#include <sensor_fusion_comm/InitScale.h>
 #include <geometry_msgs/PoseStamped.h>
 
 namespace svo {
@@ -58,8 +57,6 @@ public:
   void processUserActions();
   void remoteKeyCb(const std_msgs::StringConstPtr& key_input);
   void resetCallback(const geometry_msgs::PoseStampedConstPtr &msg);
-  ros::ServiceClient msf_init;
-  sensor_fusion_comm::InitScale srv;
 };
 
 VoNode::VoNode() :
@@ -91,7 +88,6 @@ VoNode::VoNode() :
 
   // Init VO and start
   vo_ = new svo::FrameHandlerMono(cam_);
-  srv.request.scale = 1;
 }
 
 VoNode::~VoNode()
@@ -147,10 +143,6 @@ void VoNode::processUserActions()
       printf("SVO user input: RESET\n");
       break;
     case 's':
-      if(msf_init.call(srv))
-      {
-         ROS_INFO("Msf was called");
-      }
       vo_->start();
       printf("SVO user input: START\n");
       break;
@@ -187,7 +179,6 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   std::cout << "create vo_node" << std::endl;
   svo::VoNode vo_node;
-  vo_node.msf_init = nh.serviceClient<sensor_fusion_comm::InitScale>("/msf_pose_sensor/pose_sensor/initialize_msf_scale");
   // subscribe to cam msgs
   std::string cam_topic(vk::getParam<std::string>("svo/cam_topic", "camera/image_raw"));
   image_transport::ImageTransport it(nh);
